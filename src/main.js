@@ -7,7 +7,6 @@ import { POSES } from './modules/poseDefinitions.js';
 
 class GameEngine {
   constructor() {
-    // DOM Elements
     this.video = document.getElementById('webcam-video');
     this.canvas = document.getElementById('overlay-canvas');
     this.ctx = this.canvas.getContext('2d');
@@ -28,8 +27,11 @@ class GameEngine {
     this.calibProgress = document.getElementById('calib-progress');
     this.btnStartGame = document.getElementById('btn-start-game');
 
+    this.countdownModal = document.getElementById('countdown-modal');
+    this.countdownNumEl = document.getElementById('countdown-num');
+    this.countdownPoseNameEl = document.getElementById('countdown-pose-name');
+
     this.victoryModal = document.getElementById('victory-modal');
-    this.victoryPraiseText = document.getElementById('victory-praise-text');
     this.btnNextLevel = document.getElementById('btn-next-level');
 
     this.btnMusic = document.getElementById('btn-music');
@@ -44,18 +46,32 @@ class GameEngine {
     this.matcher = new PoseMatcher();
     this.particleFX = new ParticleFX();
 
+    // Shuffled Pose Deck
+    this.poseDeck = [];
+    this.currentDeckIdx = 0;
+    this.shufflePoseDeck();
+
     // State
-    this.state = 'START_MODAL';
-    this.currentPoseIdx = 0;
+    this.state = 'START_MODAL'; // START_MODAL, CALIBRATING, COUNTDOWN, PLAYING, MATCHED
     this.stars = 0;
     this.level = 1;
 
     this.holdFrames = 0;
-    this.requiredHoldFrames = 35; // ~1.2s
+    this.requiredHoldFrames = 35;
     this.isMatchComplete = false;
 
     this.bindEvents();
     this.updateTargetPoseUI();
+  }
+
+  // Fisher-Yates shuffle algorithm for random pose sequence
+  shufflePoseDeck() {
+    this.poseDeck = [...POSES];
+    for (let i = this.poseDeck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.poseDeck[i], this.poseDeck[j]] = [this.poseDeck[j], this.poseDeck[i]];
+    }
+    this.currentDeckIdx = 0;
   }
 
   bindEvents() {
@@ -102,7 +118,7 @@ class GameEngine {
 
   async startCalibration() {
     audioEngine.playPop();
-    audioEngine.startBackgroundMusic(); // Start background music loop!
+    audioEngine.startBackgroundMusic();
 
     this.calibrationModal.classList.remove('hidden');
     this.calibTitle.textContent = 'Setting up Camera...';
@@ -121,15 +137,17 @@ class GameEngine {
       audioEngine.speak('Step back into the Golden Star Zone!');
       this.loop();
     } catch (err) {
-      console.warn('Camera failed, starting game loop:', err);
+      console.warn('Camera failed, using simulation mode:', err);
       this.calibrationModal.classList.add('hidden');
-      this.state = 'PLAYING';
+      this.runCountdown(() => {
+        this.state = 'PLAYING';
+      });
       this.loop();
     }
   }
 
   updateTargetPoseUI() {
-    const currentPose = POSES[this.currentPoseIdx];
+    const currentPose = this.poseDeck[this.currentDeckIdx];
     this.poseEmojiEl.textContent = currentPose.emoji;
     this.poseNameEl.textContent = currentPose.name;
     this.posePromptEl.textContent = currentPose.prompt;
@@ -139,8 +157,36 @@ class GameEngine {
         ${currentPose.svgPath}
       </svg>
     `;
+  }
 
-    audioEngine.speak(currentPose.audioPrompt);
+  // 3-2-1 Countdown Overlay Sequence
+  runCountdown(onComplete) {
+    this.state = 'COUNTDOWN';
+    const currentPose = this.poseDeck[this.currentDeckIdx];
+
+    this.countdownModal.classList.remove('hidden');
+    this.countdownPoseNameEl.textContent = `${currentPose.emoji} ${currentPose.name}`;
+
+    audioEngine.speak(`Get ready for ${currentPose.name}!`);
+
+    let count = 3;
+    this.countdownNumEl.textContent = count;
+    audioEngine.playCountdownNum(count);
+
+    const timer = setInterval(() => {
+      count--;
+      if (count > 0) {
+        this.countdownNumEl.textContent = count;
+        audioEngine.playCountdownNum(count);
+      } else if (count === 0) {
+        this.countdownNumEl.textContent = 'GO!';
+        audioEngine.playCountdownGo();
+      } else {
+        clearInterval(timer);
+        this.countdownModal.classList.add('hidden');
+        if (onComplete) onComplete();
+      }
+    }, 900);
   }
 
   async loop() {
@@ -162,14 +208,16 @@ class GameEngine {
         audioEngine.playLevelCompleteFanfare();
         audioEngine.speak('Super Star! Calibration Complete!');
         this.calibrationModal.classList.add('hidden');
-        this.state = 'PLAYING';
+        this.runCountdown(() => {
+          this.state = 'PLAYING';
+        });
       }
     } else if (this.state === 'PLAYING') {
       if (keypoints) {
         this.detector.drawSkeleton(this.ctx, keypoints, this.canvas.width, this.canvas.height, this.particleFX);
       }
 
-      const currentPose = POSES[this.currentPoseIdx];
+      const currentPose = this.poseDeck[this.currentDeckIdx];
       const evaluation = this.matcher.evaluate(keypoints, currentPose);
 
       this.feedbackBanner.textContent = evaluation.feedback;
@@ -193,13 +241,13 @@ class GameEngine {
         this.feedbackBanner.classList.remove('success');
         this.updateHoldRing(this.holdFrames / this.requiredHoldFrames);
       }
-    } else if (this.state === 'MATCHED') {
+    } else if (this.state === 'MATCHED' || this.state === 'COUNTDOWN') {
       if (keypoints) {
         this.detector.drawSkeleton(this.ctx, keypoints, this.canvas.width, this.canvas.height, this.particleFX);
       }
     }
 
-    this.particleFX.updateAndDraw(this.ctx);
+    this.particleFX.updateAndDraw(this.ctx, this.canvas.width, this.canvas.height);
 
     requestAnimationFrame(() => this.loop());
   }
@@ -213,14 +261,15 @@ class GameEngine {
   triggerMatchSuccess(pose) {
     this.isMatchComplete = true;
     this.state = 'MATCHED';
-    this.stars += 5;
+    this.stars += 10;
     this.starCountEl.textContent = this.stars;
 
+    // Visual celebration FX
     this.particleFX.fireConfetti();
     this.particleFX.fireStarBurst(this.canvas.width / 2, this.canvas.height / 2);
 
     audioEngine.playSuccessChime();
-    audioEngine.speakLevelPraise(); // Encouraging voice praise for completing level!
+    audioEngine.speakLevelPraise();
 
     this.feedbackBanner.textContent = '🌟 SUPER STAR MATCH! 🌟';
     this.feedbackBanner.classList.add('success');
@@ -231,7 +280,11 @@ class GameEngine {
   }
 
   nextLevel() {
-    this.currentPoseIdx = (this.currentPoseIdx + 1) % POSES.length;
+    this.currentDeckIdx++;
+    if (this.currentDeckIdx >= this.poseDeck.length) {
+      this.shufflePoseDeck();
+    }
+
     this.level++;
     this.levelNumEl.textContent = this.level;
 
@@ -241,7 +294,9 @@ class GameEngine {
     this.feedbackBanner.classList.remove('success');
 
     this.updateTargetPoseUI();
-    this.state = 'PLAYING';
+    this.runCountdown(() => {
+      this.state = 'PLAYING';
+    });
     audioEngine.playPop();
   }
 }

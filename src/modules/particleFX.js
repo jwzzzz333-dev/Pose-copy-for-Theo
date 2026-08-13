@@ -3,11 +3,12 @@ import confetti from 'canvas-confetti';
 export class ParticleFX {
   constructor() {
     this.particles = [];
+    this.textPopups = [];
+    this.rainbowHaloOpacity = 0;
   }
 
-  // Add wrist star sparkle trail
   addSparkle(x, y, color = '#FFD700') {
-    if (Math.random() > 0.4) return; // limit count
+    if (Math.random() > 0.4) return;
     this.particles.push({
       x: x + (Math.random() - 0.5) * 20,
       y: y + (Math.random() - 0.5) * 20,
@@ -21,12 +22,26 @@ export class ParticleFX {
     });
   }
 
-  // Firing celebratory confetti
+  triggerRainbowHalo() {
+    this.rainbowHaloOpacity = 1.0;
+  }
+
+  addScorePopup(x, y, text = '+100 ⭐') {
+    this.textPopups.push({
+      x,
+      y,
+      vy: -2.5,
+      text,
+      life: 1.0,
+      decay: 0.02
+    });
+  }
+
   fireConfetti() {
     try {
       confetti({
-        particleCount: 80,
-        spread: 90,
+        particleCount: 100,
+        spread: 100,
         origin: { y: 0.6 },
         colors: ['#FFD700', '#FF4081', '#00E676', '#29B6F6', '#AB47BC']
       });
@@ -35,27 +50,39 @@ export class ParticleFX {
     }
   }
 
-  // Firing star burst explosion on match complete
   fireStarBurst(x, y) {
-    for (let i = 0; i < 20; i++) {
-      const angle = (Math.PI * 2 * i) / 20;
-      const speed = Math.random() * 6 + 3;
+    this.triggerRainbowHalo();
+    this.addScorePopup(x, y - 40, 'SUPER STAR! ⭐');
+
+    for (let i = 0; i < 28; i++) {
+      const angle = (Math.PI * 2 * i) / 28;
+      const speed = Math.random() * 7 + 4;
       this.particles.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        size: Math.random() * 12 + 6,
-        color: i % 2 === 0 ? '#FFD700' : '#FF4081',
+        size: Math.random() * 14 + 6,
+        color: ['#FFD700', '#FF4081', '#00E676', '#00B0FF', '#AB47BC'][i % 5],
         alpha: 1.0,
         life: 1.0,
-        decay: 0.035
+        decay: 0.03
       });
     }
   }
 
-  updateAndDraw(ctx) {
+  updateAndDraw(ctx, width, height) {
     ctx.save();
+
+    // Rainbow frame halo effect on completion
+    if (this.rainbowHaloOpacity > 0 && width && height) {
+      ctx.strokeStyle = `rgba(255, 215, 0, ${this.rainbowHaloOpacity})`;
+      ctx.lineWidth = 16;
+      ctx.strokeRect(0, 0, width, height);
+      this.rainbowHaloOpacity -= 0.03;
+    }
+
+    // Update Star particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx;
@@ -70,7 +97,6 @@ export class ParticleFX {
       ctx.globalAlpha = p.life;
       ctx.fillStyle = p.color;
 
-      // Draw star shape
       ctx.beginPath();
       const numPoints = 5;
       const outerRadius = p.size;
@@ -87,6 +113,28 @@ export class ParticleFX {
       ctx.closePath();
       ctx.fill();
     }
+
+    // Floating text popups
+    for (let j = this.textPopups.length - 1; j >= 0; j--) {
+      const popup = this.textPopups[j];
+      popup.y += popup.vy;
+      popup.life -= popup.decay;
+
+      if (popup.life <= 0) {
+        this.textPopups.splice(j, 1);
+        continue;
+      }
+
+      ctx.globalAlpha = popup.life;
+      ctx.font = '900 36px "Bubblegum Sans", Fredoka, sans-serif';
+      ctx.fillStyle = '#FFD54F';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 6;
+      ctx.textAlign = 'center';
+      ctx.strokeText(popup.text, popup.x, popup.y);
+      ctx.fillText(popup.text, popup.x, popup.y);
+    }
+
     ctx.restore();
   }
 }

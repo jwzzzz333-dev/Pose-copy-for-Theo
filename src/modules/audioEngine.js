@@ -1,6 +1,6 @@
 /**
- * Audio Engine using Web Audio API for sound effects, procedural background music,
- * and Web Speech API for voice prompts & enthusiastic level congratulations.
+ * Enhanced Audio Engine with expressive Speech Synthesis, 3-2-1 Countdown Beeps,
+ * procedural continuous background music, and cheerful interjections.
  */
 
 class AudioEngine {
@@ -12,20 +12,19 @@ class AudioEngine {
     this.bgMusicEnabled = true;
     this.voice = null;
 
-    // Background Music Loop state
     this.bgInterval = null;
     this.isBgPlaying = false;
 
-    // Encouraging praise list for toddlers after completing each level
+    // Emotional toddler-friendly congratulatory interjections
     this.praisePhrases = [
-      "Hooray! You are super fast!",
-      "Unbelievable! Amazing move!",
-      "Woohoo! You're a superstar!",
-      "High five! You nailed it!",
-      "Fantastic job! Keep going!",
-      "Yay! Perfect pose!",
-      "Awesome! You are unstoppable!",
-      "Bravo! Great job!"
+      "Yippee! You are super fast!",
+      "Woo-hoo! Unbelievable move!",
+      "Aww yeah! You are a superstar!",
+      "Oh wow! High five! You nailed it!",
+      "Way to go! Fantastic job!",
+      "Hooray! Perfect pose!",
+      "Boom! You are totally unstoppable!",
+      "Yes! You did it!"
     ];
 
     this.initVoices();
@@ -47,7 +46,8 @@ class AudioEngine {
     if (!this.speechSynth) return;
     const loadVoices = () => {
       const voices = this.speechSynth.getVoices();
-      this.voice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Zira') || v.name.includes('Samantha'))) ||
+      // Look for natural sounding female or expressive English voice
+      this.voice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Zira') || v.name.includes('Samantha') || v.name.includes('Jenny'))) ||
                    voices.find(v => v.lang.startsWith('en')) || null;
     };
     loadVoices();
@@ -62,8 +62,8 @@ class AudioEngine {
       this.speechSynth.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       if (this.voice) utterance.voice = this.voice;
-      utterance.pitch = 1.25; // Cheerful toddler-friendly pitch
-      utterance.rate = 0.95;
+      utterance.pitch = 1.35; // Bright, warm, expressive pitch
+      utterance.rate = 1.0;
       utterance.volume = 1.0;
       this.speechSynth.speak(utterance);
     } catch (e) {
@@ -71,18 +71,68 @@ class AudioEngine {
     }
   }
 
-  // Speak randomized congratulatory praise after level achievement
   speakLevelPraise() {
     if (!this.speechEnabled) return;
     const phrase = this.praisePhrases[Math.floor(Math.random() * this.praisePhrases.length)];
-    // Slight delay so fanfare plays first
     setTimeout(() => {
       this.speak(phrase);
-    }, 400);
+    }, 350);
   }
 
   /* ----------------------------------------------------
-   * Procedural Background Music Loop (Web Audio API)
+   * 3-2-1 Countdown Audio Beeps
+   * ---------------------------------------------------- */
+  playCountdownNum(num) {
+    if (!this.sfxEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const now = this.ctx.currentTime;
+
+    osc.type = 'sine';
+    const freqMap = { 3: 440, 2: 554.37, 1: 659.25 };
+    osc.frequency.setValueAtTime(freqMap[num] || 523.25, now);
+
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.25);
+
+    this.speak(num.toString());
+  }
+
+  playCountdownGo() {
+    if (!this.sfxEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const now = this.ctx.currentTime;
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(880, now);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.4);
+
+    this.speak("GO!");
+  }
+
+  /* ----------------------------------------------------
+   * Rich Continuous Background Music Loop
    * ---------------------------------------------------- */
   startBackgroundMusic() {
     if (this.isBgPlaying || !this.bgMusicEnabled) return;
@@ -90,10 +140,8 @@ class AudioEngine {
     if (!this.ctx) return;
 
     this.isBgPlaying = true;
-
-    // Cheerful pentatonic melody notes (C4, D4, E4, G4, A4, C5, D5, E5)
-    const melodyNotes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
-    const bassNotes = [130.81, 146.83, 164.81, 196.00]; // C3, D3, E3, G3
+    const melodyNotes = [261.63, 329.63, 392.00, 523.25, 440.00, 349.23, 293.66, 392.00];
+    const bassNotes = [130.81, 174.61, 220.00, 196.00];
     let step = 0;
 
     this.bgInterval = setInterval(() => {
@@ -101,14 +149,14 @@ class AudioEngine {
 
       const now = this.ctx.currentTime;
 
-      // Play soft bass note on beats 0, 4, 8, 12
+      // Bass note
       if (step % 4 === 0) {
         const bassFreq = bassNotes[(step / 4) % bassNotes.length];
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(bassFreq, now);
-        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.setValueAtTime(0.05, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
@@ -116,14 +164,13 @@ class AudioEngine {
         osc.stop(now + 0.35);
       }
 
-      // Play soft cheerful melody arpeggio
+      // Melody arp
       const noteFreq = melodyNotes[step % melodyNotes.length];
       const oscMelody = this.ctx.createOscillator();
       const gainMelody = this.ctx.createGain();
-
       oscMelody.type = 'sine';
       oscMelody.frequency.setValueAtTime(noteFreq, now);
-      gainMelody.gain.setValueAtTime(0.03, now);
+      gainMelody.gain.setValueAtTime(0.035, now);
       gainMelody.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
 
       oscMelody.connect(gainMelody);
@@ -133,7 +180,7 @@ class AudioEngine {
       oscMelody.stop(now + 0.22);
 
       step = (step + 1) % 16;
-    }, 280); // ~107 BPM gentle playful rhythm
+    }, 260);
   }
 
   stopBackgroundMusic() {
@@ -154,9 +201,6 @@ class AudioEngine {
     return this.bgMusicEnabled;
   }
 
-  /* ----------------------------------------------------
-   * Sound Effects
-   * ---------------------------------------------------- */
   playPop() {
     if (!this.sfxEnabled) return;
     this.initContext();
@@ -167,7 +211,7 @@ class AudioEngine {
     osc.type = 'sine';
     const now = this.ctx.currentTime;
     osc.frequency.setValueAtTime(300, now);
-    osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(850, now + 0.08);
 
     gain.gain.setValueAtTime(0.3, now);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
@@ -188,10 +232,10 @@ class AudioEngine {
     const gain = this.ctx.createGain();
     osc.type = 'triangle';
     const now = this.ctx.currentTime;
-    const targetFreq = 440 + (progress * 440);
+    const targetFreq = 440 + (progress * 480);
 
     osc.frequency.setValueAtTime(targetFreq, now);
-    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.setValueAtTime(0.09, now);
     gain.gain.linearRampToValueAtTime(0.001, now + 0.1);
 
     osc.connect(gain);
@@ -213,15 +257,15 @@ class AudioEngine {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now + idx * 0.09);
-      gain.gain.setValueAtTime(0.3, now + idx * 0.09);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 0.35);
+      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+      gain.gain.setValueAtTime(0.3, now + idx * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
 
-      osc.start(now + idx * 0.09);
-      osc.stop(now + idx * 0.09 + 0.35);
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 0.35);
     });
   }
 
