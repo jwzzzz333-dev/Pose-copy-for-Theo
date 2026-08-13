@@ -29,8 +29,10 @@ class GameEngine {
     this.btnStartGame = document.getElementById('btn-start-game');
 
     this.victoryModal = document.getElementById('victory-modal');
+    this.victoryPraiseText = document.getElementById('victory-praise-text');
     this.btnNextLevel = document.getElementById('btn-next-level');
 
+    this.btnMusic = document.getElementById('btn-music');
     this.btnSound = document.getElementById('btn-sound');
     this.btnSpeech = document.getElementById('btn-speech');
     this.btnRecalibrate = document.getElementById('btn-recalibrate');
@@ -42,14 +44,14 @@ class GameEngine {
     this.matcher = new PoseMatcher();
     this.particleFX = new ParticleFX();
 
-    // State variables
-    this.state = 'START_MODAL'; // START_MODAL, CALIBRATING, PLAYING, MATCHED
+    // State
+    this.state = 'START_MODAL';
     this.currentPoseIdx = 0;
     this.stars = 0;
     this.level = 1;
 
     this.holdFrames = 0;
-    this.requiredHoldFrames = 35; // ~1.2s at 30fps
+    this.requiredHoldFrames = 35; // ~1.2s
     this.isMatchComplete = false;
 
     this.bindEvents();
@@ -63,6 +65,12 @@ class GameEngine {
     this.btnRecalibrate.addEventListener('click', () => this.startCalibration());
     this.btnSkip.addEventListener('click', () => this.nextLevel());
 
+    this.btnMusic.addEventListener('click', () => {
+      const enabled = audioEngine.toggleBackgroundMusic();
+      this.btnMusic.textContent = enabled ? '🎵' : '🔇';
+      audioEngine.playPop();
+    });
+
     this.btnSound.addEventListener('click', () => {
       audioEngine.sfxEnabled = !audioEngine.sfxEnabled;
       this.btnSound.textContent = audioEngine.sfxEnabled ? '🔊' : '🔇';
@@ -73,9 +81,8 @@ class GameEngine {
       this.btnSpeech.textContent = audioEngine.speechEnabled ? '🗣️' : '🤫';
     });
 
-    // Difficulty buttons
     document.querySelectorAll('.seg-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const mode = btn.dataset.mode;
@@ -84,7 +91,6 @@ class GameEngine {
       });
     });
 
-    // Window Resize
     window.addEventListener('resize', () => this.resizeCanvas());
   }
 
@@ -96,6 +102,8 @@ class GameEngine {
 
   async startCalibration() {
     audioEngine.playPop();
+    audioEngine.startBackgroundMusic(); // Start background music loop!
+
     this.calibrationModal.classList.remove('hidden');
     this.calibTitle.textContent = 'Setting up Camera...';
     this.calibMsg.textContent = 'Allow camera access in your browser!';
@@ -110,15 +118,10 @@ class GameEngine {
       this.calibTitle.textContent = 'Golden Star Calibration';
       this.calibMsg.textContent = 'Step back so your body is inside the Golden Star Zone!';
 
-      // Voice prompt
       audioEngine.speak('Step back into the Golden Star Zone!');
-
-      // Start Loop
       this.loop();
     } catch (err) {
-      console.warn('Camera failed, using simulation mode:', err);
-      this.calibTitle.textContent = 'Camera Notice';
-      this.calibMsg.textContent = 'Could not access webcam. You can still test poses with mouse/touch!';
+      console.warn('Camera failed, starting game loop:', err);
       this.calibrationModal.classList.add('hidden');
       this.state = 'PLAYING';
       this.loop();
@@ -131,24 +134,20 @@ class GameEngine {
     this.poseNameEl.textContent = currentPose.name;
     this.posePromptEl.textContent = currentPose.prompt;
 
-    // Render SVG
     this.poseSvgContainer.innerHTML = `
       <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
         ${currentPose.svgPath}
       </svg>
     `;
 
-    // Speak audio prompt
     audioEngine.speak(currentPose.audioPrompt);
   }
 
   async loop() {
     if (this.canvas.width === 0) this.resizeCanvas();
 
-    // Clear Canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Get Poses
     const poses = await this.detector.estimatePoses();
     const keypoints = poses.length > 0 ? poses[0].keypoints : null;
 
@@ -166,12 +165,10 @@ class GameEngine {
         this.state = 'PLAYING';
       }
     } else if (this.state === 'PLAYING') {
-      // Render Skeleton & Star Particles
       if (keypoints) {
         this.detector.drawSkeleton(this.ctx, keypoints, this.canvas.width, this.canvas.height, this.particleFX);
       }
 
-      // Evaluate Pose
       const currentPose = POSES[this.currentPoseIdx];
       const evaluation = this.matcher.evaluate(keypoints, currentPose);
 
@@ -184,7 +181,6 @@ class GameEngine {
         const progress = Math.min(1.0, this.holdFrames / this.requiredHoldFrames);
         this.updateHoldRing(progress);
 
-        // Sound effect as hold ring fills up
         if (this.holdFrames % 4 === 0) {
           audioEngine.playHoldProgress(progress);
         }
@@ -198,20 +194,18 @@ class GameEngine {
         this.updateHoldRing(this.holdFrames / this.requiredHoldFrames);
       }
     } else if (this.state === 'MATCHED') {
-      // Draw celebratory skeleton & stars
       if (keypoints) {
         this.detector.drawSkeleton(this.ctx, keypoints, this.canvas.width, this.canvas.height, this.particleFX);
       }
     }
 
-    // Update Particle FX
     this.particleFX.updateAndDraw(this.ctx);
 
     requestAnimationFrame(() => this.loop());
   }
 
   updateHoldRing(progress) {
-    const circumference = 283; // 2 * pi * r (r=45)
+    const circumference = 283;
     const offset = circumference - progress * circumference;
     this.holdRingProgress.style.strokeDashoffset = offset;
   }
@@ -222,20 +216,18 @@ class GameEngine {
     this.stars += 5;
     this.starCountEl.textContent = this.stars;
 
-    // Trigger visual celebration
     this.particleFX.fireConfetti();
     this.particleFX.fireStarBurst(this.canvas.width / 2, this.canvas.height / 2);
 
     audioEngine.playSuccessChime();
-    audioEngine.speak('Yay! Super Star! You did it!');
+    audioEngine.speakLevelPraise(); // Encouraging voice praise for completing level!
 
     this.feedbackBanner.textContent = '🌟 SUPER STAR MATCH! 🌟';
     this.feedbackBanner.classList.add('success');
 
-    // Auto advance after 2.5 seconds
     setTimeout(() => {
       this.nextLevel();
-    }, 2500);
+    }, 2800);
   }
 
   nextLevel() {
@@ -254,7 +246,6 @@ class GameEngine {
   }
 }
 
-// Launch Game Engine on page load
 window.addEventListener('DOMContentLoaded', () => {
   window.gameEngine = new GameEngine();
 });

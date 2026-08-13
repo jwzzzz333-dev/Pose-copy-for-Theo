@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wii Motion Quest - Pose Game for Toddlers</title>
+  <title>Wii Motion Quest - Fun Pose Game for Toddlers!</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bubblegum+Sans&family=Fredoka:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
 
-  <!-- App Header Navbar -->
+  <!-- Cartoon App Header Navbar -->
   <header class="app-header">
     <div class="logo-group">
-      <span class="logo-icon">🎮⭐</span>
+      <span class="logo-icon">🧸🌟</span>
       <div class="logo-text">
         <h1>Wii Motion Quest</h1>
-        <p>Fun Pose Game for Toddlers!</p>
+        <p>Theo's Fun Motion Playground! 🎉</p>
       </div>
     </div>
 
@@ -31,7 +31,8 @@
         <span id="star-count">0</span>
       </div>
 
-      <button id="btn-sound" class="icon-btn" title="Toggle Sound">🔊</button>
+      <button id="btn-music" class="icon-btn" title="Toggle Background Music">🎵</button>
+      <button id="btn-sound" class="icon-btn" title="Toggle Sound Effects">🔊</button>
       <button id="btn-speech" class="icon-btn" title="Toggle Voice Prompts">🗣️</button>
     </div>
   </header>
@@ -39,13 +40,13 @@
   <!-- Main Game Container -->
   <main class="game-container">
 
-    <!-- Viewport Area (TV Camera & Canvas) -->
+    <!-- Viewport Area (TV Camera & Cartoon Canvas) -->
     <div class="viewport-card">
 
       <video id="webcam-video" playsinline muted></video>
       <canvas id="overlay-canvas"></canvas>
 
-      <!-- Pose Hold Meter Progress Ring -->
+      <!-- Pose Hold Progress Ring -->
       <div id="hold-container" class="hold-ring-container">
         <svg class="hold-ring-svg" viewBox="0 0 100 100">
           <circle class="ring-bg" cx="50" cy="50" r="45" stroke-width="8" fill="none"></circle>
@@ -62,16 +63,16 @@
       <!-- Start & Calibration Overlay Modal -->
       <div id="calibration-modal" class="overlay-modal">
         <div class="modal-card">
-          <div style="font-size: 3.5rem;">📺 Stand in Front of TV 🌟</div>
+          <div style="font-size: 3.8rem;">📺 Stand in Front of TV 🌟</div>
           <h2 id="calib-title">TV Camera Setup</h2>
-          <p id="calib-msg">Place your laptop camera under your TV. Step back into the camera view!</p>
+          <p id="calib-msg">Place your laptop camera under your TV. Step back into the Golden Star Zone!</p>
           
           <div class="progress-bar-outer">
             <div id="calib-progress" class="progress-bar-inner"></div>
           </div>
 
           <button id="btn-start-game" class="btn-primary" style="width: 100%;">
-            <span>🚀 Start Playing!</span>
+            <span>🚀 Start Playing! 🎵</span>
           </button>
         </div>
       </div>
@@ -79,9 +80,9 @@
       <!-- Level Complete / Victory Overlay Modal -->
       <div id="victory-modal" class="overlay-modal hidden">
         <div class="modal-card">
-          <div style="font-size: 4rem;">🎉⭐🥳</div>
+          <div style="font-size: 4.5rem;">🎉⭐🥳</div>
           <h2>SUPER STAR!</h2>
-          <p>You matched the pose! Amazing job!</p>
+          <p id="victory-praise-text">Awesome job! You matched the pose!</p>
 
           <button id="btn-next-level" class="btn-primary" style="width: 100%;">
             <span>⭐ Next Pose! ⭐</span>
@@ -102,7 +103,7 @@
         </div>
 
         <div id="pose-svg-container" class="pose-svg-container">
-          <!-- Dynamic SVG Stick figure -->
+          <!-- Dynamic Cartoon SVG illustration -->
         </div>
 
         <div id="pose-prompt" class="pose-prompt">
@@ -113,7 +114,7 @@
       <!-- Game Controls -->
       <div class="control-card">
         <div class="control-row">
-          <span class="control-label">👶 Difficulty:</span>
+          <span class="control-label">👶 Mode:</span>
           <div class="segmented-control">
             <button class="seg-btn active" data-mode="toddler">Toddler 3yo</button>
             <button class="seg-btn" data-mode="kid">Kid 5yo</button>
@@ -122,10 +123,10 @@
         </div>
 
         <div style="display: flex; gap: 0.8rem; width: 100%;">
-          <button id="btn-recalibrate" class="btn-primary" style="flex: 1; background: rgba(255,255,255,0.15); color: #FFF; box-shadow: none;">
+          <button id="btn-recalibrate" class="btn-primary" style="flex: 1; background: rgba(255,255,255,0.2); color: #FFF; box-shadow: 0 6px 0 #1A237E;">
             <span>📐 Calibrate</span>
           </button>
-          <button id="btn-skip" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #FF4081, #AB47BC); box-shadow: none;">
+          <button id="btn-skip" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #FF4081, #AB47BC); color: #FFF; box-shadow: 0 6px 0 #880E4F;">
             <span>➡️ Next</span>
           </button>
         </div>
