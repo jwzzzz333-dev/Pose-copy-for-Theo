@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wii Motion Quest - Pose Game for Toddlers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+
+  <!-- App Header Navbar -->
+  <header class="app-header">
+    <div class="logo-group">
+      <span class="logo-icon">🎮⭐</span>
+      <div class="logo-text">
+        <h1>Wii Motion Quest</h1>
+        <p>Fun Pose Game for Toddlers!</p>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <div class="badge badge-level">
+        <span>Level</span>
+        <span id="level-num">1</span>
+      </div>
+      <div class="badge badge-stars">
+        <span>⭐ Stars</span>
+        <span id="star-count">0</span>
+      </div>
+
+      <button id="btn-sound" class="icon-btn" title="Toggle Sound">🔊</button>
+      <button id="btn-speech" class="icon-btn" title="Toggle Voice Prompts">🗣️</button>
+    </div>
+  </header>
+
+  <!-- Main Game Container -->
+  <main class="game-container">
+
+    <!-- Viewport Area (TV Camera & Canvas) -->
+    <div class="viewport-card">
+
+      <video id="webcam-video" playsinline muted></video>
+      <canvas id="overlay-canvas"></canvas>
+
+      <!-- Pose Hold Meter Progress Ring -->
+      <div id="hold-container" class="hold-ring-container">
+        <svg class="hold-ring-svg" viewBox="0 0 100 100">
+          <circle class="ring-bg" cx="50" cy="50" r="45" stroke-width="8" fill="none"></circle>
+          <circle id="ring-progress" class="ring-progress" cx="50" cy="50" r="45" stroke-width="8" fill="none"></circle>
+        </svg>
+        <span class="hold-star-icon">⭐</span>
+      </div>
+
+      <!-- Real-time Feedback Banner -->
+      <div id="feedback-banner" class="feedback-banner">
+        Step in front of the TV camera!
+      </div>
+
+      <!-- Start & Calibration Overlay Modal -->
+      <div id="calibration-modal" class="overlay-modal">
+        <div class="modal-card">
+          <div style="font-size: 3.5rem;">📺 Stand in Front of TV 🌟</div>
+          <h2 id="calib-title">TV Camera Setup</h2>
+          <p id="calib-msg">Place your laptop camera under your TV. Step back into the camera view!</p>
+          
+          <div class="progress-bar-outer">
+            <div id="calib-progress" class="progress-bar-inner"></div>
+          </div>
+
+          <button id="btn-start-game" class="btn-primary" style="width: 100%;">
+            <span>🚀 Start Playing!</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Level Complete / Victory Overlay Modal -->
+      <div id="victory-modal" class="overlay-modal hidden">
+        <div class="modal-card">
+          <div style="font-size: 4rem;">🎉⭐🥳</div>
+          <h2>SUPER STAR!</h2>
+          <p>You matched the pose! Amazing job!</p>
+
+          <button id="btn-next-level" class="btn-primary" style="width: 100%;">
+            <span>⭐ Next Pose! ⭐</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Sidebar (Target Pose & Controls) -->
+    <aside class="sidebar">
+
+      <!-- Active Pose Card -->
+      <div class="pose-card">
+        <div class="pose-title">
+          <span id="pose-emoji">🌟</span>
+          <span id="pose-name">Reach For The Stars!</span>
+        </div>
+
+        <div id="pose-svg-container" class="pose-svg-container">
+          <!-- Dynamic SVG Stick figure -->
+        </div>
+
+        <div id="pose-prompt" class="pose-prompt">
+          Reach both arms WAY UP high to touch the stars!
+        </div>
+      </div>
+
+      <!-- Game Controls -->
+      <div class="control-card">
+        <div class="control-row">
+          <span class="control-label">👶 Difficulty:</span>
+          <div class="segmented-control">
+            <button class="seg-btn active" data-mode="toddler">Toddler 3yo</button>
+            <button class="seg-btn" data-mode="kid">Kid 5yo</button>
+            <button class="seg-btn" data-mode="pro">Pro</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.8rem; width: 100%;">
+          <button id="btn-recalibrate" class="btn-primary" style="flex: 1; background: rgba(255,255,255,0.15); color: #FFF; box-shadow: none;">
+            <span>📐 Calibrate</span>
+          </button>
+          <button id="btn-skip" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #FF4081, #AB47BC); box-shadow: none;">
+            <span>➡️ Next</span>
+          </button>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
